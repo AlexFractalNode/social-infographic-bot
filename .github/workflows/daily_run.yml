@@ -30,3 +30,9 @@ jobs:
     - name: 🚀 Bot-Skript ausführen
       run: python src/main.py
       # Später fügen wir hier noch Umgebungsvariablen für (Twitter/Insta) API-Keys hinzu!
+      
+    - name: 💾 Grafik als Artefakt speichern
+      uses: actions/upload-artifact@v4
+      with:
+        name: infographic
+        path: output/trend_chart.png
