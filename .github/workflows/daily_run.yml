@@ -1,0 +1,32 @@
+name: Daily Infographic Bot
+
+on:
+  # 1. Automatischer Start (Cronjob): Jeden Tag um 08:00 UTC
+  schedule:
+    - cron: '0 8 * * *'
+  
+  # 2. Manueller Start (Workflow Dispatch): Erlaubt dir, den Bot per Button im GitHub-Interface zu testen
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Repository auschecken
+      uses: actions/checkout@v4
+
+    - name: 🐍 Python einrichten
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # Eine stabile, moderne Version
+        cache: 'pip'           # Beschleunigt den Lauf, da Pakete zwischengespeichert werden
+
+    - name: 📦 Abhängigkeiten installieren
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🚀 Bot-Skript ausführen
+      run: python src/main.py
+      # Später fügen wir hier noch Umgebungsvariablen für (Twitter/Insta) API-Keys hinzu!
