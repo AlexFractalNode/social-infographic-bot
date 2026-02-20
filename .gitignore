@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Eigene Projekt-Dateien (nicht hochladen!)
+output/
+*.png
+*.jpg
+.env
