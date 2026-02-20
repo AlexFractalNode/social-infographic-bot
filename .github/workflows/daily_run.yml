@@ -28,8 +28,10 @@ jobs:
         pip install -r requirements.txt
 
     - name: 🚀 Bot-Skript ausführen
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python src/main.py
-      # Später fügen wir hier noch Umgebungsvariablen für (Twitter/Insta) API-Keys hinzu!
       
     - name: 💾 Grafik als Artefakt speichern
       uses: actions/upload-artifact@v4
