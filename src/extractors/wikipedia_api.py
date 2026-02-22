@@ -99,6 +99,5 @@ def get_wikipedia_data(article, days=30, language="de.wikipedia.org"):
     except Exception as e:
         print(f"⚠️ Konnte Zusammenfassung für {title} nicht laden: {e}")
         
-    return "" # Gebe leeren String zurück, falls es fehlschlägt
-
+    return ""
     return df
