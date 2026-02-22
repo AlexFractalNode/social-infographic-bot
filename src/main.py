@@ -4,6 +4,12 @@ from visualizers.plotter import create_trend_chart
 from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
+# === KONFIGURATION DER PLATTFORMEN ===
+# Setze hier auf 'True' (aktivieren) oder 'False' (deaktivieren)
+ENABLE_TELEGRAM = True
+ENABLE_TWITTER = False
+# =====================================
+
 def main():
     print("🚀 Starte Daily Infographic Bot...")
     thema = "Künstliche_Intelligenz"
@@ -24,11 +30,21 @@ def main():
     thema_clean = thema.replace('_', ' ')
     caption = f"📊 Der tägliche #Wikipedia Trend!\n\nSuchinteresse für '{thema_clean}' der letzten 30 Tage. Was denkst du über diese Entwicklung?\n\n#DataScience #Python #Automatisierung"
     
-    post_to_telegram(chart_path, caption)
-    print("🎉 Pipeline erfolgreich komplett durchlaufen!")
+    print("\n--- Starte Publishing-Phase ---")
+    
+    # Telegram Steuerung
+    if ENABLE_TELEGRAM:
+        post_to_telegram(chart_path, caption)
+    else:
+        print("⏭️ Telegram-Post übersprungen (in Konfiguration deaktiviert).")
 
-    post_to_twitter(chart_path, caption)
-    print("🎉 Pipeline erfolgreich komplett durchlaufen!")
+    # Twitter/X Steuerung
+    if ENABLE_TWITTER:
+        post_to_twitter(chart_path, caption)
+    else:
+        print("⏭️ Twitter-Post übersprungen (in Konfiguration deaktiviert).")
+        
+    print("\n🎉 Pipeline erfolgreich komplett durchlaufen!")
 
 if __name__ == "__main__":
     main()
