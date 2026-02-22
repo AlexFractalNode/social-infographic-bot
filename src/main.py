@@ -1,5 +1,6 @@
 import sys
 import pandas as pd 
+# WICHTIG: Die neue Summary-Funktion im Import hinzufügen!
 from extractors.wikipedia_api import get_wikipedia_data, get_top_wikipedia_trend, get_wikipedia_summary
 from visualizers.plotter import create_trend_chart
 from publishers.social_poster import post_to_telegram
