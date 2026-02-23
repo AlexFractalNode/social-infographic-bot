@@ -15,8 +15,8 @@ from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
 # === CORE ENGINE KONFIGURATION ===
-# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO"
-ACTIVE_MODULE = "CRYPTO" 
+# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER"
+ACTIVE_MODULE = "WEATHER"
 
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
@@ -98,6 +98,15 @@ def main():
         # Wir lassen die KI die aktuellen Bitcoin-News analysieren!
         ai_reason = get_news_and_analyze("Bitcoin", "de", test_mode=TEST_MODE)
         df = get_crypto_data(coin_id="bitcoin", days=30)
+
+    elif ACTIVE_MODULE == "WEATHER":
+        source_name = "Umwelt/DWD"
+        y_label = "Max. Temperatur (°C)"
+        thema = "Klimatrend: Berlin"
+        summary = "Die tägliche Höchsttemperatur in der Hauptstadt, basierend auf den Wettermodellen des Deutschen Wetterdienstes (DWD) via Open-Meteo."
+        # Wir lassen die News-Analyse hier vorerst leer, da lokale Wetter-News oft schwer in 2 Sätzen zusammenzufassen sind.
+        ai_reason = "" 
+        df = get_weather_data(city="Berlin", lat=52.52, lon=13.41, days=30)
         
     else:
         print(f"❌ Unbekanntes Modul: {ACTIVE_MODULE}")
