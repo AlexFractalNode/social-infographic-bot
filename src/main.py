@@ -1,12 +1,65 @@
 import sys
-import time # <--- WICHTIG: Das hier ganz oben zu den Imports packen!
+import time
 import pandas as pd 
 from extractors.wikipedia_api import get_wikipedia_data, get_top_wikipedia_trend, get_wikipedia_summary
 from visualizers.plotter import create_trend_chart
 from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
-# ... (Deine generate_smart_caption Funktion bleibt hier exakt so wie sie ist) ...
+# === KONFIGURATION DER PLATTFORMEN ===
+ENABLE_TELEGRAM = True
+ENABLE_TWITTER = False
+# =====================================
+
+def generate_smart_caption(df, thema, summary):
+    """Generiert einen dynamischen Text inkl. Beschreibung basierend auf den Daten."""
+    thema_clean = thema.replace('_', ' ')
+    hashtag_thema = "".join(word.capitalize() for word in thema_clean.split())
+    
+    # 1. Daten analysieren
+    try:
+        # Da wir die Spalte in der API-Datei wieder in 'Aufrufe' umbenannt haben:
+        views_col = 'Aufrufe' if 'Aufrufe' in df.columns else df.columns[-1]
+        
+        if len(df) >= 14:
+            recent_7_days = df[views_col].tail(7).mean()
+            previous_7_days = df[views_col].iloc[-14:-7].mean()
+            
+            if previous_7_days > 0:
+                change_percent = ((recent_7_days - previous_7_days) / previous_7_days) * 100
+            else:
+                change_percent = 0
+            
+            if change_percent > 20:
+                trend_insight = f"📈 Starker Anstieg! Das Interesse stieg um {change_percent:.1f}%."
+            elif change_percent < -20:
+                trend_insight = f"📉 Der Hype flacht ab. Das Interesse sank um {abs(change_percent):.1f}%."
+            elif change_percent > 0:
+                trend_insight = f"↗️ Leichtes Wachstum (+{change_percent:.1f}%)."
+            else:
+                trend_insight = f"↘️ Leichter Rückgang (-{abs(change_percent):.1f}%)."
+        else:
+            trend_insight = "📊 Entwicklung der letzten 30 Tage."
+            
+    except Exception as e:
+        print(f"⚠️ Fehler bei der Statistik: {e}")
+        trend_insight = "📊 Entwicklung der letzten 30 Tage."
+
+    # 2. Den fertigen Text zusammenbauen
+    caption = f"🔍 Der tägliche Wikipedia-Trend!\n\n"
+    caption += f"📌 Thema: {thema_clean}\n"
+    
+    # Wenn wir eine Zusammenfassung haben, fügen wir sie hinzu
+    if summary:
+        caption += f"ℹ️ Info: \"{summary}\"\n\n"
+    else:
+        caption += "\n"
+        
+    caption += f"{trend_insight}\n\n"
+    caption += f"Was denkst du über diese Entwicklung?\n\n"
+    caption += f"#{hashtag_thema} #Wikipedia #Trend"
+    
+    return caption
 
 def main():
     print("🚀 Starte Daily Infographic Bot...")
@@ -18,16 +71,14 @@ def main():
     print("📚 Lade Kurzbeschreibung...")
     summary = get_wikipedia_summary(thema, "de")
     
-    # NEU: Wir warten 2 Sekunden, damit Wikipedia uns nicht wegen Spam blockiert!
+    # Spam-Schutz Pause
     print("⏳ Warte 2 Sekunden (Wikipedia Spam-Schutz)...")
     time.sleep(2)
     
     # Phase 1: Extraktion
     df = get_wikipedia_data(thema, days=30)
-    
-    # NEU: Genauere Fehlerausgabe
     if df is None:
-        print("❌ Abbruch in Phase 1: get_wikipedia_data hat 'None' zurückgegeben (API hat evtl. blockiert).")
+        print("❌ Abbruch in Phase 1: get_wikipedia_data hat 'None' zurückgegeben.")
         return
     if df.empty:
         print("❌ Abbruch in Phase 1: Daten empfangen, aber die Tabelle ist leer.")
