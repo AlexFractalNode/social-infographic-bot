@@ -1,12 +1,14 @@
 name: Daily Infographic Bot
 
 on:
-  # 1. Automatischer Start (Cronjob): Jeden Tag um 08:00 UTC
-  schedule:
-    - cron: '0 8 * * *'
-  
-  # 2. Manueller Start (Workflow Dispatch): Erlaubt dir, den Bot per Button im GitHub-Interface zu testen
+  # Erlaubt es dir, den Bot weiterhin manuell über den Button zu starten
   workflow_dispatch:
+  
+  schedule:
+    # Das Format ist: Minute Stunde Tag Monat Wochentag
+    # Achtung: GitHub Actions nutzt die UTC-Zeitzone!
+    # "0 7 * * *" bedeutet 07:00 Uhr UTC = 08:00 Uhr deutscher Zeit (Winterzeit) bzw. 09:00 Uhr (Sommerzeit)
+    - cron: '0 7 * * *'
 
 jobs:
   run-bot:
