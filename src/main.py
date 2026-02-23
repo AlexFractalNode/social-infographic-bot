@@ -10,6 +10,7 @@ from extractors.crypto_api import get_crypto_data
 from extractors.weather_api import get_weather_data
 from extractors.exchange_api import get_exchange_rate_data
 from extractors.fred_api import get_fred_data
+from visualizers.plotter import create_trend_chart, create_correlation_chart
 
 # --- Engine Tools ---
 from visualizers.plotter import create_trend_chart
@@ -17,8 +18,8 @@ from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
 # === CORE ENGINE KONFIGURATION ===
-# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER" oder "EXCHANGE" oder "FRED"
-ACTIVE_MODULE = "FRED"
+# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER" oder "EXCHANGE" oder "FRED" oder "CROSSOVER"
+ACTIVE_MODULE = "CROSSOVER"
 
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
@@ -170,6 +171,55 @@ def main():
         # Wir lassen Groq die aktuellen News zur "US Notenbank Zinsen" analysieren
         ai_reason = get_news_and_analyze("US Notenbank Zinsen", "de", test_mode=TEST_MODE)
         df = get_fred_data(series_id="DGS10", days=30)
+
+    elif ACTIVE_MODULE == "CROSSOVER":
+        source_name = "Krypto vs Wirtschaft"
+        thema = "Bitcoin vs US-Zinsen"
+        summary = "Wie reagiert der Krypto-Markt auf die Geldpolitik der US-Notenbank? Wir legen den Bitcoin-Preis über die Rendite der 10-jährigen US-Staatsanleihen."
+        
+        # 1. Beide Datensätze laden
+        print("\n🔄 Lade Datensatz 1 (Bitcoin)...")
+        df_crypto = get_crypto_data(coin_id="bitcoin", days=30)
+        
+        print("\n🔄 Lade Datensatz 2 (FRED Zinsen)...")
+        df_fred = get_fred_data(series_id="DGS10", days=30)
+        
+        # 2. Daten für den Merge vorbereiten (Spalten umbenennen)
+        if df_crypto is not None and df_fred is not None:
+            df_crypto = df_crypto.rename(columns={'Aufrufe': 'Wert1'})
+            df_fred = df_fred.rename(columns={'Aufrufe': 'Wert2'})
+            
+            # 3. PANDAS MAGIC: Beide Tabellen anhand des Datums zusammenführen!
+            # 'inner' bedeutet: Er nimmt nur Tage, an denen es für beide Werte Daten gibt
+            df = pd.merge(df_crypto, df_fred, on='timestamp', how='inner')
+            
+            # Wir lassen die KI eine kurze Einschätzung zu diesem Zusammenhang schreiben
+            ai_reason = get_news_and_analyze("Zinsen Krypto Bitcoin Einfluss", "de", test_mode=TEST_MODE)
+            
+            # 4. Den speziellen Crossover-Plotter aufrufen
+            chart_path = create_correlation_chart(
+                df=df, 
+                title="Korrelation: Bitcoin vs. 10Y US-Zinsen", 
+                label_1="Bitcoin Preis ($)", 
+                label_2="US-Zinsen (%)"
+            )
+            
+            # Da wir hier eine spezielle Grafik haben, überspringen wir den restlichen Standard-Code
+            # und generieren den Text und Post direkt hier im Block.
+            caption = f"📊 Data Crossover: Bitcoin vs. US-Notenbank\n\n"
+            caption += f"ℹ️ Info: {summary}\n\n"
+            if ai_reason: caption += f"💡 Analyse:\n{ai_reason}\n\n"
+            caption += "Was fällt dir an dieser Entwicklung auf?\n\n#Bitcoin #FRED #Zinsen #DataScience"
+            
+            if chart_path:
+                if ENABLE_TELEGRAM: post_to_telegram(chart_path, caption)
+                if ENABLE_TWITTER: post_to_twitter(chart_path, caption)
+            
+            print(f"\n🎉 Crossover-Pipeline erfolgreich durchlaufen!")
+            return # WICHTIG: Hier beenden, damit der Standard-Plotter am Ende nicht nochmal anläuft
+        else:
+            print("❌ Fehler beim Laden der Crossover-Daten.")
+            return
         
     else:
         print(f"❌ Unbekanntes Modul: {ACTIVE_MODULE}")
