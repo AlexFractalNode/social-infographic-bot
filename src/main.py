@@ -5,7 +5,8 @@ import pandas as pd
 # --- Unsere Plugins (Extractors) ---
 from extractors.wikipedia_api import get_wikipedia_data, get_top_wikipedia_trend, get_wikipedia_summary
 from extractors.news_analyzer import get_news_and_analyze
-from extractors.nasa_api import get_nasa_neo_data  # <--- NEU: Das NASA Plugin
+from extractors.nasa_api import get_nasa_neo_data
+from extractors.crypto_api import get_crypto_data
 
 # --- Engine Tools ---
 from visualizers.plotter import create_trend_chart
@@ -13,8 +14,8 @@ from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
 # === CORE ENGINE KONFIGURATION ===
-# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA"
-ACTIVE_MODULE = "NASA" 
+# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO"
+ACTIVE_MODULE = "CRYPTO" 
 
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
@@ -87,6 +88,15 @@ def main():
         # Wir lassen die News-KI für NASA erstmal weg (daher leere Analyse)
         ai_reason = "" 
         df = get_nasa_neo_data(days=30)
+
+    elif ACTIVE_MODULE == "CRYPTO":
+        source_name = "Krypto"
+        y_label = "Preis in USD ($)"
+        thema = "Bitcoin"
+        summary = "Bitcoin ist die weltweit erste und marktstärkste Kryptowährung, basierend auf einer dezentralen Blockchain-Technologie."
+        # Wir lassen die KI die aktuellen Bitcoin-News analysieren!
+        ai_reason = get_news_and_analyze("Bitcoin", "de", test_mode=TEST_MODE)
+        df = get_crypto_data(coin_id="bitcoin", days=30)
         
     else:
         print(f"❌ Unbekanntes Modul: {ACTIVE_MODULE}")
