@@ -5,20 +5,21 @@ from extractors.wikipedia_api import get_wikipedia_data, get_top_wikipedia_trend
 from visualizers.plotter import create_trend_chart
 from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
+# NEU: Unsere KI-Analyse importieren!
+from extractors.news_analyzer import get_news_and_analyze
 
 # === KONFIGURATION DER PLATTFORMEN ===
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
 # =====================================
 
-def generate_smart_caption(df, thema, summary):
-    """Generiert einen dynamischen Text inkl. Beschreibung basierend auf den Daten."""
+def generate_smart_caption(df, thema, summary, ai_reason):
+    """Generiert einen dynamischen Text inkl. Beschreibung und KI-Analyse."""
     thema_clean = thema.replace('_', ' ')
     hashtag_thema = "".join(word.capitalize() for word in thema_clean.split())
     
     # 1. Daten analysieren
     try:
-        # Da wir die Spalte in der API-Datei wieder in 'Aufrufe' umbenannt haben:
         views_col = 'Aufrufe' if 'Aufrufe' in df.columns else df.columns[-1]
         
         if len(df) >= 14:
@@ -49,11 +50,12 @@ def generate_smart_caption(df, thema, summary):
     caption = f"🔍 Der tägliche Wikipedia-Trend!\n\n"
     caption += f"📌 Thema: {thema_clean}\n"
     
-    # Wenn wir eine Zusammenfassung haben, fügen wir sie hinzu
     if summary:
         caption += f"ℹ️ Info: \"{summary}\"\n\n"
-    else:
-        caption += "\n"
+        
+    # NEU: Der Grund aus den Nachrichten!
+    if ai_reason:
+        caption += f"💡 Warum trendet das gerade?\n{ai_reason}\n\n"
         
     caption += f"{trend_insight}\n\n"
     caption += f"Was denkst du über diese Entwicklung?\n\n"
@@ -64,18 +66,17 @@ def generate_smart_caption(df, thema, summary):
 def main():
     print("🚀 Starte Daily Infographic Bot...")
     
-    # Dynamisches Top-Thema holen
     thema = get_top_wikipedia_trend("de")
     
-    # Kurzbeschreibung holen
     print("📚 Lade Kurzbeschreibung...")
     summary = get_wikipedia_summary(thema, "de")
     
-    # Spam-Schutz Pause
+    # NEU: Hier rufen wir unsere KI auf!
+    ai_reason = get_news_and_analyze(thema, "de")
+    
     print("⏳ Warte 2 Sekunden (Wikipedia Spam-Schutz)...")
     time.sleep(2)
     
-    # Phase 1: Extraktion
     df = get_wikipedia_data(thema, days=30)
     if df is None:
         print("❌ Abbruch in Phase 1: get_wikipedia_data hat 'None' zurückgegeben.")
@@ -84,15 +85,14 @@ def main():
         print("❌ Abbruch in Phase 1: Daten empfangen, aber die Tabelle ist leer.")
         return
 
-    # Phase 2: Visualisierung
     chart_path = create_trend_chart(df, thema)
     if not chart_path:
         print("❌ Abbruch in Phase 2.")
         return
         
-    # Phase 3: Publishing
     print("\n--- Generiere smarten Text ---")
-    caption = generate_smart_caption(df, thema, summary)
+    # WICHTIG: ai_reason an die Funktion übergeben!
+    caption = generate_smart_caption(df, thema, summary, ai_reason)
     print(f"Generierter Text:\n{caption}\n")
     
     print("--- Starte Publishing-Phase ---")
