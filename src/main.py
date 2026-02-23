@@ -80,12 +80,16 @@ def generate_smart_caption(df, thema, summary, ai_reason, source_name="Wikipedia
     caption += f"Was denkst du über diese Entwicklung?\n\n"
     
 
-# NEU: Smarte Hashtag-Generierung (Trennt bei Leerzeichen & Slashes, behält Akronyme wie EUR)
+    # NEU: Smarte Hashtag-Generierung (Trennt bei Leerzeichen & Slashes, entfernt Klammern)
     tags = []
-    # Ersetze Slashes und Bindestriche durch Leerzeichen, damit wir sauber trennen können
-    for word in thema_clean.replace("/", " ").replace("-", " ").split():
+    # Ersetze Slashes, Bindestriche UND Klammern durch Leerzeichen
+    for word in thema_clean.replace("/", " ").replace("-", " ").replace("(", " ").replace(")", " ").split():
         clean_word = word.replace(':', '').replace('.', '')
-        # Wenn das Wort schon komplett großgeschrieben ist (z.B. EUR, USD), behalten wir das bei
+        
+        # Leere Strings überspringen (falls doppelte Leerzeichen da waren)
+        if not clean_word: continue 
+        
+        # Wenn das Wort schon komplett großgeschrieben ist (z.B. EUR, USD, US), behalten wir das bei
         if clean_word.isupper():
             tags.append(f"#{clean_word}")
         else:
