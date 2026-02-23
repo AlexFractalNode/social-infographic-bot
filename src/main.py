@@ -2,6 +2,9 @@ import sys
 import time
 import pandas as pd 
 
+# ==========================================
+# 1. IMPORTE
+# ==========================================
 # --- Unsere Plugins (Extractors) ---
 from extractors.wikipedia_api import get_wikipedia_data, get_top_wikipedia_trend, get_wikipedia_summary
 from extractors.news_analyzer import get_news_and_analyze
@@ -10,22 +13,26 @@ from extractors.crypto_api import get_crypto_data
 from extractors.weather_api import get_weather_data
 from extractors.exchange_api import get_exchange_rate_data
 from extractors.fred_api import get_fred_data
-from visualizers.plotter import create_trend_chart, create_correlation_chart
 
 # --- Engine Tools ---
-from visualizers.plotter import create_trend_chart
+from visualizers.plotter import create_trend_chart, create_correlation_chart
 from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
-# === CORE ENGINE KONFIGURATION ===
-# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER" oder "EXCHANGE" oder "FRED" oder "CROSSOVER"
+# ==========================================
+# 2. KONFIGURATION
+# ==========================================
+# Wähle hier das Modul für den heutigen Tag: 
+# "WIKIPEDIA", "NASA", "CRYPTO", "WEATHER", "EXCHANGE", "FRED" oder "CROSSOVER"
 ACTIVE_MODULE = "CROSSOVER"
 
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
 TEST_MODE = False
-# =====================================
 
+# ==========================================
+# 3. TEXT-GENERATOR
+# ==========================================
 def generate_smart_caption(df, thema, summary, ai_reason, source_name="Wikipedia"):
     """Generiert einen dynamischen Text, passend zur Datenquelle."""
     thema_clean = thema.replace('_', ' ')
@@ -36,41 +43,30 @@ def generate_smart_caption(df, thema, summary, ai_reason, source_name="Wikipedia
             recent_7_days = df[views_col].tail(7).mean()
             previous_7_days = df[views_col].iloc[-14:-7].mean()
             
-            # --- NEU: Spezielle Logik für Temperaturen (Absolute Differenz statt Prozent) ---
+            # Spezielle Logik für Temperaturen (Absolute Differenz statt Prozent)
             if source_name == "Umwelt/DWD":
                 diff = recent_7_days - previous_7_days
-                if diff > 2:
-                    trend_insight = f"📈 Deutlich wärmer! Im Schnitt {diff:.1f}°C wärmer als in der Vorwoche."
-                elif diff < -2:
-                    trend_insight = f"📉 Spürbar kälter! Im Schnitt {abs(diff):.1f}°C kälter als in der Vorwoche."
-                elif diff > 0:
-                    trend_insight = f"↗️ Leicht wärmer (+{diff:.1f}°C zur Vorwoche)."
-                else:
-                    trend_insight = f"↘️ Leicht kälter (-{abs(diff):.1f}°C zur Vorwoche)."
+                if diff > 2: trend_insight = f"📈 Deutlich wärmer! Im Schnitt {diff:.1f}°C wärmer als in der Vorwoche."
+                elif diff < -2: trend_insight = f"📉 Spürbar kälter! Im Schnitt {abs(diff):.1f}°C kälter als in der Vorwoche."
+                elif diff > 0: trend_insight = f"↗️ Leicht wärmer (+{diff:.1f}°C zur Vorwoche)."
+                else: trend_insight = f"↘️ Leicht kälter (-{abs(diff):.1f}°C zur Vorwoche)."
                     
-            # --- Standard-Logik für Wikipedia, NASA, Krypto (Prozentuale Differenz) ---
+            # Standard-Logik für Wikipedia, NASA, Krypto, etc. (Prozentuale Differenz)
             else:
                 change_percent = ((recent_7_days - previous_7_days) / previous_7_days) * 100 if previous_7_days > 0 else 0
-                if change_percent > 20: 
-                    trend_insight = f"📈 Starker Anstieg! Die Zahlen stiegen um {change_percent:.1f}%."
-                elif change_percent < -20: 
-                    trend_insight = f"📉 Deutlicher Rückgang um {abs(change_percent):.1f}%."
-                elif change_percent > 0: 
-                    trend_insight = f"↗️ Leichtes Wachstum (+{change_percent:.1f}%)."
-                else: 
-                    trend_insight = f"↘️ Leichter Rückgang (-{abs(change_percent):.1f}%)."
+                if change_percent > 20: trend_insight = f"📈 Starker Anstieg! Die Zahlen stiegen um {change_percent:.1f}%."
+                elif change_percent < -20: trend_insight = f"📉 Deutlicher Rückgang um {abs(change_percent):.1f}%."
+                elif change_percent > 0: trend_insight = f"↗️ Leichtes Wachstum (+{change_percent:.1f}%)."
+                else: trend_insight = f"↘️ Leichter Rückgang (-{abs(change_percent):.1f}%)."
         else:
             trend_insight = "📊 Entwicklung der letzten 30 Tage."
     except Exception:
         trend_insight = "📊 Entwicklung der letzten 30 Tage."
 
-    # Text flexibel zusammenbauen (mit passenden Emojis!)
-    if source_name == "NASA":
-        caption = f"🪐 Der tägliche {source_name}-Datenpunkt!\n\n"
-    elif source_name == "Umwelt/DWD":
-        caption = f"🌤️ Der tägliche {source_name}-Trend!\n\n"
-    else:
-        caption = f"🔍 Der tägliche {source_name}-Trend!\n\n"
+    # Text flexibel zusammenbauen (mit passenden Emojis)
+    if source_name == "NASA": caption = f"🪐 Der tägliche {source_name}-Datenpunkt!\n\n"
+    elif source_name == "Umwelt/DWD": caption = f"🌤️ Der tägliche {source_name}-Trend!\n\n"
+    else: caption = f"🔍 Der tägliche {source_name}-Trend!\n\n"
         
     caption += f"📌 Thema: {thema_clean}\n"
     
@@ -80,17 +76,12 @@ def generate_smart_caption(df, thema, summary, ai_reason, source_name="Wikipedia
     caption += f"{trend_insight}\n\n"
     caption += f"Was denkst du über diese Entwicklung?\n\n"
     
-
-    # NEU: Smarte Hashtag-Generierung (Trennt bei Leerzeichen & Slashes, entfernt Klammern)
+    # Smarte Hashtag-Generierung (Trennt bei Leerzeichen & Slashes, entfernt Klammern)
     tags = []
-    # Ersetze Slashes, Bindestriche UND Klammern durch Leerzeichen
     for word in thema_clean.replace("/", " ").replace("-", " ").replace("(", " ").replace(")", " ").split():
         clean_word = word.replace(':', '').replace('.', '')
-        
-        # Leere Strings überspringen (falls doppelte Leerzeichen da waren)
         if not clean_word: continue 
         
-        # Wenn das Wort schon komplett großgeschrieben ist (z.B. EUR, USD, US), behalten wir das bei
         if clean_word.isupper():
             tags.append(f"#{clean_word}")
         else:
@@ -103,21 +94,17 @@ def generate_smart_caption(df, thema, summary, ai_reason, source_name="Wikipedia
       
     return caption
 
+# ==========================================
+# 4. HAUPTSTEUERUNG (ENGINE)
+# ==========================================
 def main():
     print(f"🚀 Starte Data Engine... (Aktives Modul: {ACTIVE_MODULE})")
     if TEST_MODE: print("⚠️ TEST-MODUS AKTIV.")
     
-    # --- VARIABLEN FÜR DIE ENGINE ---
-    thema = ""
-    summary = ""
-    ai_reason = ""
-    df = None
-    source_name = ""
-    y_label = ""
+    # Variablen für die Engine
+    thema, summary, ai_reason, df, source_name, y_label = "", "", "", None, "", ""
     
-    # ==========================================
-    # DATEN-ROUTING (Hier greifen die Plugins!)
-    # ==========================================
+    # --- DATEN-ROUTING ---
     if ACTIVE_MODULE == "WIKIPEDIA":
         source_name = "Wikipedia"
         y_label = "Aufrufe"
@@ -131,8 +118,7 @@ def main():
         source_name = "NASA"
         y_label = "Vorbeiflüge (NEOs)"
         thema = "Erdnahe Asteroiden"
-        summary = "Das Center for Near Earth Object Studies (CNEOS) der NASA überwacht Kometen und Asteroiden, die sich der Umlaufbahn der Erde nähern."
-        # Wir lassen die News-KI für NASA erstmal weg (daher leere Analyse)
+        summary = "Das Center for Near Earth Object Studies (CNEOS) der NASA überwacht Kometen und Asteroiden."
         ai_reason = "" 
         df = get_nasa_neo_data(days=30)
 
@@ -140,8 +126,7 @@ def main():
         source_name = "Krypto"
         y_label = "Preis in USD ($)"
         thema = "Bitcoin"
-        summary = "Bitcoin ist die weltweit erste und marktstärkste Kryptowährung, basierend auf einer dezentralen Blockchain-Technologie."
-        # Wir lassen die KI die aktuellen Bitcoin-News analysieren!
+        summary = "Bitcoin ist die weltweit erste und marktstärkste Kryptowährung."
         ai_reason = get_news_and_analyze("Bitcoin", "de", test_mode=TEST_MODE)
         df = get_crypto_data(coin_id="bitcoin", days=30)
 
@@ -149,8 +134,7 @@ def main():
         source_name = "Umwelt/DWD"
         y_label = "Max. Temperatur (°C)"
         thema = "Klimatrend: Berlin"
-        summary = "Die tägliche Höchsttemperatur in der Hauptstadt, basierend auf den Wettermodellen des Deutschen Wetterdienstes (DWD) via Open-Meteo."
-        # Wir lassen die News-Analyse hier vorerst leer, da lokale Wetter-News oft schwer in 2 Sätzen zusammenzufassen sind.
+        summary = "Die tägliche Höchsttemperatur in der Hauptstadt (DWD via Open-Meteo)."
         ai_reason = "" 
         df = get_weather_data(city="Berlin", lat=52.52, lon=13.41, days=30)
 
@@ -158,8 +142,7 @@ def main():
         source_name = "EZB"
         y_label = "USD pro 1 EUR ($)"
         thema = "Wechselkurs EUR/USD"
-        summary = "Der offizielle Referenzkurs der Europäischen Zentralbank (EZB). Er zeigt, wie viele US-Dollar man aktuell für einen Euro bekommt."
-        # KI-Analyse einschalten!
+        summary = "Der offizielle Referenzkurs der Europäischen Zentralbank (EZB)."
         ai_reason = get_news_and_analyze("Euro Dollar Wechselkurs Wirtschaft", "de", test_mode=TEST_MODE)
         df = get_exchange_rate_data(base="EUR", target="USD", days=30)
 
@@ -167,36 +150,30 @@ def main():
         source_name = "Makro/FRED"
         y_label = "Zinssatz in %"
         thema = "US-Staatsanleihen (10 Jahre)"
-        summary = "Die Rendite 10-jähriger US-Staatsanleihen ist der wichtigste globale Indikator für die allgemeine Zinsentwicklung und das Vertrauen der Finanzmärkte."
-        # Wir lassen Groq die aktuellen News zur "US Notenbank Zinsen" analysieren
+        summary = "Die Rendite 10-jähriger US-Staatsanleihen ist der wichtigste globale Zinsindikator."
         ai_reason = get_news_and_analyze("US Notenbank Zinsen", "de", test_mode=TEST_MODE)
         df = get_fred_data(series_id="DGS10", days=30)
 
     elif ACTIVE_MODULE == "CROSSOVER":
         source_name = "Krypto vs Wirtschaft"
         thema = "Bitcoin vs US-Zinsen"
-        summary = "Wie reagiert der Krypto-Markt auf die Geldpolitik der US-Notenbank? Wir legen den Bitcoin-Preis über die Rendite der 10-jährigen US-Staatsanleihen."
+        summary = "Wie reagiert der Krypto-Markt auf die Geldpolitik der US-Notenbank?"
         
-        # 1. Beide Datensätze laden
         print("\n🔄 Lade Datensatz 1 (Bitcoin)...")
         df_crypto = get_crypto_data(coin_id="bitcoin", days=30)
         
         print("\n🔄 Lade Datensatz 2 (FRED Zinsen)...")
         df_fred = get_fred_data(series_id="DGS10", days=30)
         
-        # 2. Daten für den Merge vorbereiten (Spalten umbenennen)
         if df_crypto is not None and df_fred is not None:
             df_crypto = df_crypto.rename(columns={'Aufrufe': 'Wert1'})
             df_fred = df_fred.rename(columns={'Aufrufe': 'Wert2'})
             
-            # 3. PANDAS MAGIC: Beide Tabellen anhand des Datums zusammenführen!
-            # 'inner' bedeutet: Er nimmt nur Tage, an denen es für beide Werte Daten gibt
+            # PANDAS MAGIC: Führt beide Tabellen zusammen
             df = pd.merge(df_crypto, df_fred, on='timestamp', how='inner')
-            
-            # Wir lassen die KI eine kurze Einschätzung zu diesem Zusammenhang schreiben
             ai_reason = get_news_and_analyze("Zinsen Krypto Bitcoin Einfluss", "de", test_mode=TEST_MODE)
             
-            # 4. Den speziellen Crossover-Plotter aufrufen
+            # Crossover-Plotter aufrufen
             chart_path = create_correlation_chart(
                 df=df, 
                 title="Korrelation: Bitcoin vs. 10Y US-Zinsen", 
@@ -204,8 +181,6 @@ def main():
                 label_2="US-Zinsen (%)"
             )
             
-            # Da wir hier eine spezielle Grafik haben, überspringen wir den restlichen Standard-Code
-            # und generieren den Text und Post direkt hier im Block.
             caption = f"📊 Data Crossover: Bitcoin vs. US-Notenbank\n\n"
             caption += f"ℹ️ Info: {summary}\n\n"
             if ai_reason: caption += f"💡 Analyse:\n{ai_reason}\n\n"
@@ -216,7 +191,7 @@ def main():
                 if ENABLE_TWITTER: post_to_twitter(chart_path, caption)
             
             print(f"\n🎉 Crossover-Pipeline erfolgreich durchlaufen!")
-            return # WICHTIG: Hier beenden, damit der Standard-Plotter am Ende nicht nochmal anläuft
+            return 
         else:
             print("❌ Fehler beim Laden der Crossover-Daten.")
             return
@@ -224,14 +199,12 @@ def main():
     else:
         print(f"❌ Unbekanntes Modul: {ACTIVE_MODULE}")
         return
-    # ==========================================
     
-    # --- AB HIER IST ALLES STANDARDISIERT ---
+    # --- PUBLISHING FÜR STANDARD-MODULE ---
     if df is None or df.empty:
         print("❌ Abbruch: Keine Daten vom Plugin empfangen.")
         return
 
-    # Plotter aufrufen (mit den dynamischen Labels!)
     chart_path = create_trend_chart(df, thema, source_name=source_name, y_label=y_label)
     if not chart_path: return
         
