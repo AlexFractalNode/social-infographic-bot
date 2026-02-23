@@ -1,59 +1,89 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import pandas as pd
 
-def create_trend_chart(df, topic, output_filename="output/trend_chart.png"):
-    """Erstellt eine ansprechende Social-Media-Grafik aus den Wikipedia-Daten."""
-    print("🎨 Generiere Grafik...")
+def create_trend_chart(df, thema):
+    """
+    Erstellt ein ansprechendes Liniendiagramm mit Trendlinie und Höchstwert-Markierung.
+    """
+    print("🎨 Generiere professionelle Grafik...")
     
-    # Stelle sicher, dass der Output-Ordner existiert
+    # Sicherstellen, dass das Output-Verzeichnis existiert
     os.makedirs("output", exist_ok=True)
+    chart_path = "output/trend_chart.png"
     
-    # Styling Setup (Dark Mode für Social Media)
-    plt.style.use('dark_background')
-    
-    # Figure erstellen (Hohe Auflösung, 16:9 Format)
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
-    
-    # Hintergrundfarben anpassen (Ein modernes, dunkles Blaugrau)
-    bg_color = '#1e1e2e'
-    fig.patch.set_facecolor(bg_color)
-    ax.set_facecolor(bg_color)
-    
-    # Daten plotten (Leuchtende Linie + gefüllte Fläche darunter)
-    line_color = '#89b4fa' # Ein schönes Hellblau
-    ax.plot(df.index, df['Aufrufe'], color=line_color, linewidth=2.5)
-    ax.fill_between(df.index, df['Aufrufe'], color=line_color, alpha=0.2)
-    
-    # Grid und Achsen stylen
-    ax.grid(color='#313244', linestyle='--', linewidth=0.5, alpha=0.7)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cdd6f4')
-    ax.spines['bottom'].set_color('#cdd6f4')
-    ax.tick_params(colors='#cdd6f4')
-    
-    # --- TITEL & UNTERTITEL (Manuelle Platzierung) ---
-    topic_clean = topic.replace('_', ' ')
-    
-    # Haupttitel: Mittig (0.5), ganz oben (0.96)
-    fig.text(0.5, 0.96, f'Wikipedia Trend: {topic_clean}',
-             color='#cdd6f4', fontsize=18, fontweight='bold',
-             ha='center', va='top')
+    try:
+        # Thema für den Titel aufbereiten
+        thema_clean = thema.replace('_', ' ')
+        
+        # Sicherstellen, dass timestamp der Index ist (für einfaches Plotten)
+        if 'timestamp' in df.columns:
+            df = df.set_index('timestamp')
+            
+        # 1. Datenvorbereitung: 7-Tage-Trendlinie (Gleitender Durchschnitt) berechnen
+        # min_periods=1 sorgt dafür, dass die Linie auch an den ersten Tagen gezeichnet wird
+        df['Trend'] = df['Aufrufe'].rolling(window=7, min_periods=1).mean()
+        
+        # Den absoluten Höchstwert und das dazugehörige Datum finden
+        max_views = df['Aufrufe'].max()
+        max_date = df['Aufrufe'].idxmax()
 
-    # Untertitel: Mittig (0.5), etwas tiefer (0.90)
-    fig.text(0.5, 0.90, 'Tägliche Aufrufzahlen der letzten 30 Tage',
-             color='#a6adc8', fontsize=12,
-             ha='center', va='top')
+        # 2. Design-Setup (Dunkles, modernes Theme)
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
+        
+        # Hintergrundfarbe für den Plot-Bereich und die Figur anpassen
+        bg_color = '#15202b' # Typisches Twitter/X Dark-Mode Blau-Grau
+        fig.patch.set_facecolor(bg_color)
+        ax.set_facecolor(bg_color)
+        
+        # Rasterlinien dezent im Hintergrund
+        ax.grid(color='#38444d', linestyle='--', linewidth=0.5, alpha=0.7)
 
-    # WICHTIG: Platz oben schaffen, damit das Diagramm nicht in den Text rutscht
-    plt.subplots_adjust(top=0.85)
-    
-    # Layout anpassen und speichern
-    # note: bbox_inches='tight' kann manchmal manuelle text-platzierung stören, 
-    # aber wir probieren es erstmal damit, da es Ränder gut entfernt.
-    plt.savefig(output_filename, bbox_inches='tight', facecolor=fig.get_facecolor())
-    plt.close()
-    
-    print(f"✅ Grafik erfolgreich gespeichert unter: {output_filename}")
-    return output_filename
+        # 3. Das eigentliche Plotten
+        # Die nackten Zahlen als leicht transparente Fläche im Hintergrund
+        ax.fill_between(df.index, df['Aufrufe'], color='#1DA1F2', alpha=0.2)
+        ax.plot(df.index, df['Aufrufe'], color='#1DA1F2', linewidth=1.5, alpha=0.5, label='Tägliche Aufrufe')
+        
+        # Die geglättete Trendlinie prominent im Vordergrund
+        ax.plot(df.index, df['Trend'], color='#FFD700', linewidth=3, label='7-Tage Trend')
+
+        # 4. Den Höchstwert markieren (Pfeil & Text)
+        # Formatiere die Zahl mit Tausendertrennzeichen (z.B. 250.000)
+        max_views_str = f"{int(max_views):,}".replace(',', '.')
+        
+        ax.annotate(f'Peak: {max_views_str}',
+                    xy=(max_date, max_views),
+                    xytext=(10, 20), # Text leicht versetzt nach oben rechts
+                    textcoords='offset points',
+                    color='white',
+                    fontweight='bold',
+                    arrowprops=dict(arrowstyle="->", color='#FFD700', lw=1.5))
+
+        # 5. Achsen und Titel formatieren
+        plt.title(f'Wikipedia Trend: {thema_clean}', color='white', fontsize=16, fontweight='bold', pad=15)
+        
+        # Datumsformat auf der X-Achse (z.B. "15. Feb")
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d. %b'))
+        plt.xticks(rotation=45, color='#8899a6')
+        plt.yticks(color='#8899a6')
+        
+        # Rahmenlinien (Spines) anpassen
+        for spine in ax.spines.values():
+            spine.set_color('#38444d')
+            
+        # Legende hinzufügen
+        ax.legend(facecolor=bg_color, edgecolor='#38444d', labelcolor='white')
+
+        # 6. Speichern und Aufräumen
+        plt.tight_layout()
+        plt.savefig(chart_path, facecolor=fig.get_facecolor(), edgecolor='none')
+        plt.close()
+        
+        print(f"✅ Grafik erfolgreich gespeichert unter: {chart_path}")
+        return chart_path
+        
+    except Exception as e:
+        print(f"❌ Fehler bei der Grafikerstellung: {e}")
+        return None
