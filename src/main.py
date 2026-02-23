@@ -9,6 +9,7 @@ from extractors.nasa_api import get_nasa_neo_data
 from extractors.crypto_api import get_crypto_data
 from extractors.weather_api import get_weather_data
 from extractors.exchange_api import get_exchange_rate_data
+from extractors.fred_api import get_fred_data
 
 # --- Engine Tools ---
 from visualizers.plotter import create_trend_chart
@@ -16,8 +17,8 @@ from publishers.social_poster import post_to_telegram
 from publishers.social_poster import post_to_twitter
 
 # === CORE ENGINE KONFIGURATION ===
-# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER" oder "EXCHANGE"
-ACTIVE_MODULE = "EXCHANGE"
+# Wähle hier das Modul für den heutigen Tag: "WIKIPEDIA" oder "NASA" oder "CRYPTO" oder "WEATHER" oder "EXCHANGE" oder "FRED"
+ACTIVE_MODULE = "FRED"
 
 ENABLE_TELEGRAM = True
 ENABLE_TWITTER = False
@@ -156,6 +157,15 @@ def main():
         # KI-Analyse einschalten!
         ai_reason = get_news_and_analyze("Euro Dollar Wechselkurs Wirtschaft", "de", test_mode=TEST_MODE)
         df = get_exchange_rate_data(base="EUR", target="USD", days=30)
+
+    elif ACTIVE_MODULE == "FRED":
+        source_name = "Makro/FRED"
+        y_label = "Zinssatz in %"
+        thema = "US-Staatsanleihen (10 Jahre)"
+        summary = "Die Rendite 10-jähriger US-Staatsanleihen ist der wichtigste globale Indikator für die allgemeine Zinsentwicklung und das Vertrauen der Finanzmärkte."
+        # Wir lassen Groq die aktuellen News zur "US Notenbank Zinsen" analysieren
+        ai_reason = get_news_and_analyze("US Notenbank Zinsen", "de", test_mode=TEST_MODE)
+        df = get_fred_data(series_id="DGS10", days=30)
         
     else:
         print(f"❌ Unbekanntes Modul: {ACTIVE_MODULE}")
